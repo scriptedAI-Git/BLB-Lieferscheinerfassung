@@ -1,0 +1,52 @@
+oct
+    https://github.com/naptha/tesseract.js/
+        npm install tesseract.js
+        yarn add tesseract.js
+node.js
+    https://nodejs.org/en/
+        
+
+wenn  QR Code WA -> Settings -> Linked Devices -> Link a Device
+
+wenn paket wie tesseract benötigt:
+
+Im Projektordner
+
+    npm install tesseract.js
+
+        const { createWorker } = require('tesseract.js');
+
+        async function extractTextFromImage(imagePath) {
+            const worker = await createWorker('eng');
+            const { data: { text } } = await worker.recognize(imagePath);
+            await worker.terminate();
+            return text;
+        }
+
+
+im whatsapp-bot Ordner 
+    npm install tesseract.js
+        in Index.js
+
+        include:
+        const { createWorker } = require('tesseract.js');
+
+        client.on('message', async (message) => {
+            if (message.hasMedia) {
+                const media = await message.downloadMedia();
+
+                if (media && media.mimetype.startsWith('image/')) {
+                    const imageBuffer = Buffer.from(media.data, 'base64');
+
+                    const worker = await createWorker('eng');
+
+                    const { data: { text } } = await worker.recognize(imageBuffer);
+
+                    await worker.terminate();
+
+                    console.log('OCR text:', text);
+
+                    await message.reply(`I found this text:\n\n${text}`);
+                }
+            }
+        });
