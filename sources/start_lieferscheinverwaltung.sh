@@ -14,6 +14,6 @@ else
     docker start n8n
 fi
 
-npm update whatsapp-web.js
+#npm update whatsapp-web.js
 
-node index.js
+#node index.js
