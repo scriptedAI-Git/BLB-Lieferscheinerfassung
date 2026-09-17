@@ -1,9 +1,17 @@
-const { Client, LocalAuth } = require('whatsapp-web.js');
-const qrcode = require('qrcode-terminal');
-const fs = require('fs');
-const path = require('path');
-const axios = require('axios');
-const {createWorker} = require('tesseract.js');
+import WhatsappJs from 'whatsapp-web.js';
+import QRpkg from 'qrcode-terminal';
+import FileSystem from 'fs';
+import Path from 'path';
+import Axios from 'axios';
+import TesseractOCR from 'tesseract.js';
+import { debug } from 'console';
+
+const { Client, LocalAuth } = WhatsappJs;
+const qrcode = QRpkg;
+const fs = FileSystem;
+const path = Path;
+const axios = Axios;
+const {createWorker} = TesseractOCR;
 
 
 const client = new Client({
@@ -34,6 +42,8 @@ client.on('ready', () => {
 //// Use whatsappbot to receive message
 
 let _botSignature = 'GeneratedResponse:\n';
+//// performanter wenn TesseractWorker nicht bei jedem Bild erzeugt werden muss
+let worker = await createWorker('deu');
 
 client.on('message_create', async (message) => {
 
@@ -107,21 +117,36 @@ client.on('message_create', async (message) => {
     }
 
     //// Use tesseract to read to OCR
-
+    let recognizedText;
     try {
-        let worker = await createWorker('deu');
-        const {data: {text}} = await worker.recognize(imageBuffer);
+        const {data} = await worker.recognize(imageBuffer, {}, {blocks: true});
 
         await worker.terminate();
 
-        console.log('ORC Text:\n', text);
-        
-        answer = GenerateOCRMessage(message, text);
-        await message.reply(answer);
+        ////console.log('ORC Text:\n', data.text);
+
+        recognizedText = data;
+
+        // // answer = GenerateOCRMessage(message, text);
+        // // await message.reply(answer);
 
     } catch (tesseractError) {
         console.log('tesseractError\n', tesseractError);
     }
+
+    ist alles ein block -.-
+    for (const block of recognizedText.blocks ?? []) {
+        console.log(block);
+        let x = block.text;
+        let y = block.bbox;
+
+        console.log(`text:\n ${x}\n bbox: ${y}`);
+    }
+
+    //// Diese herangehensweise würde spezielle Formulae erfordern die alle analysiert und geclustert werden müssten
+
+    //// /../i sucht nach lowercase uppercase und auch zusamenhängende wörter z.B. auch "Empfänger"liste
+    //// Blocks durchsuchen 
 
     // try {
 
