@@ -117,15 +117,15 @@ client.on('message_create', async (message) => {
     }
 
     //// Use tesseract to read to OCR
-    let recognizedText;
+    let recognizedTextObject;
     try {
-        const {data} = await worker.recognize(imageBuffer, {}, {blocks: true});
+        const result = await worker.recognize(imageBuffer, {}, {blocks: true});
 
         await worker.terminate();
 
         ////console.log('ORC Text:\n', data.text);
 
-        recognizedText = data;
+        recognizedTextObject = result;
 
         // // answer = GenerateOCRMessage(message, text);
         // // await message.reply(answer);
@@ -134,14 +134,39 @@ client.on('message_create', async (message) => {
         console.log('tesseractError\n', tesseractError);
     }
 
-    ist alles ein block -.-
-    for (const block of recognizedText.blocks ?? []) {
-        console.log(block);
-        let x = block.text;
-        let y = block.bbox;
-
-        console.log(`text:\n ${x}\n bbox: ${y}`);
+    if (recognizedTextObject.confidence < 70) {
+        console.log('Achtung der Text hat große Unsicherheiten');
     }
+
+    let deliveryCompany = DetermineDeliveryCompany(recognizedTextObject);
+
+    if (deliveryCompany === null) {
+        console.log('Beende Erkennung, keine Firma erkannt');
+        await message.reply('Beende Erkennung, keine Firma erkannt');
+        return;
+    }
+
+    answer = _botSignature + DeliverCompanyNames[deliveryCompany];
+    
+    switch (deliveryCompany) {
+        case DeliveryCompany.NordMineral:
+            /// Form,ularauswertungsaufruf        
+            break;
+        case DeliveryCompany.AMSSGmbH:
+            /// Form,ularauswertungsaufruf
+            break;
+        case DeliveryCompany.STSandAbbau:
+            /// Form,ularauswertungsaufruf
+            break;
+        default:
+            console.log('default');
+            break;
+    }
+
+    answer += ' erkannt -> starte Lieferscheinerfassung';
+    console.log(answer);
+    await message.reply(answer);
+
 
     //// Diese herangehensweise würde spezielle Formulae erfordern die alle analysiert und geclustert werden müssten
 
@@ -206,3 +231,31 @@ function ConvertUnixDateTimeForSaving(timestamp) {
     // Convert Unix Time from MilliSeconds to seconds. to swedish sv-SE format and replace Timeseperator T with blank space
     return new Date(timestamp*1000).toLocaleString('sv-SE').replace('T', ' ').replace(':', '-');
 }
+
+function DetermineDeliveryCompany(recognizedTextData) {
+
+    let text = recognizedTextData.data.text;
+    for (let i = 0; i < DeliverCompanyNames.length; i++) {
+        if (text.includes(DeliverCompanyNames[i])) {
+            //// Das ist scheisse aber ich muss mal ne Option finden wie hier enums gehen
+            return i;
+        }
+    }
+    console.log('Firma nicht im Register gefunden');
+    return null;
+}
+
+
+//// JS hat keine enums, daher dieser ansatz
+
+const DeliveryCompany = {
+    AMSSGmbH: 0,
+    NordMineral: 1,
+    STSandAbbau: 2
+};
+
+const DeliverCompanyNames = [
+    'AMSS GmbH & Co. KG',
+    'Nordmineral Recycling GmbH & Co.',
+    'ST Sandabbau und rekultivierung'
+]
