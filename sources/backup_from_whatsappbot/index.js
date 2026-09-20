@@ -1,10 +1,12 @@
+//// Imported Packes
 import WhatsappJs from 'whatsapp-web.js';
 import QRpkg from 'qrcode-terminal';
 import FileSystem from 'fs';
 import Path from 'path';
 import Axios from 'axios';
 import TesseractOCR from 'tesseract.js';
-import { debug } from 'console';
+//// Imported local jscripts
+import DeliveryForms from './delivery_forms.js';
 
 const { Client, LocalAuth } = WhatsappJs;
 const qrcode = QRpkg;
@@ -12,7 +14,7 @@ const fs = FileSystem;
 const path = Path;
 const axios = Axios;
 const {createWorker} = TesseractOCR;
-
+const _deliveryForms = new DeliveryForms();
 
 const client = new Client({
     authStrategy: new LocalAuth(),
@@ -120,9 +122,6 @@ client.on('message_create', async (message) => {
     let recognizedTextObject;
     try {
         const result = await worker.recognize(imageBuffer, {}, {blocks: true});
-
-        await worker.terminate();
-
         ////console.log('ORC Text:\n', data.text);
 
         recognizedTextObject = result;
@@ -146,27 +145,28 @@ client.on('message_create', async (message) => {
         return;
     }
 
-    answer = _botSignature + DeliverCompanyNames[deliveryCompany];
-    
+    answer = _botSignature + DeliverCompanyNames[deliveryCompany] + ' erkannt -> starte Lieferscheinerfassung';
+    console.log(answer);
+    await message.reply(answer);
+
+    let formulaArray;
     switch (deliveryCompany) {
         case DeliveryCompany.NordMineral:
-            /// Form,ularauswertungsaufruf        
+            /// Form,ularauswertungsaufruf
+            formulaArray = _deliveryForms.NordMineral(recognizedTextObject);
             break;
         case DeliveryCompany.AMSSGmbH:
             /// Form,ularauswertungsaufruf
             break;
         case DeliveryCompany.STSandAbbau:
-            /// Form,ularauswertungsaufruf
+            /// Form,ularauswertungsaufrufS
             break;
         default:
             console.log('default');
             break;
     }
 
-    answer += ' erkannt -> starte Lieferscheinerfassung';
-    console.log(answer);
-    await message.reply(answer);
-
+   
 
     //// Diese herangehensweise würde spezielle Formulae erfordern die alle analysiert und geclustert werden müssten
 
